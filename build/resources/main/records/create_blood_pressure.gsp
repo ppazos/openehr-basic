@@ -8,45 +8,49 @@
       
       $(function() {
          
-         var controls = $(':input');
-         for (i=0; i<controls.length; i++)
-         {
-            console.log(controls[i].name);
-            
-            // show data
-            for (path in data)
+        var controls = $(':input');
+        for (i=0; i<controls.length; i++)
+        {
+          console.log(controls[i].name);
+          
+          // show data
+          for (path in data)
+          {
+            if (controls[i].name == path)
             {
-               if (controls[i].name == path)
-               {
-                  $(controls[i]).val( data[path] );
-               }
+              $(controls[i]).val( data[path] );
             }
+          }
+          
+          // show errors
+          for (path in errors)
+          {
+            console.log(path);
             
-            // show errors
-            for (path in errors)
+            // field has error?
+            if (controls[i].name.startsWith( path ))
             {
-               console.log(path);
-               
-               // field has error?
-               if (controls[i].name.startsWith( path ))
-               {
-                  $(controls[i]).parent().addClass('has-error');
-               }
+              $(controls[i]).parent().addClass('has-error');
             }
-         }
-      });
+          }
+        }
 
-      $('form').on('submit', function(e) {
 
-        e.preventDefault();
+        $('form').on('submit', function(e) {
 
-        $(':input').each(function(i){
+          console.log('submit');
 
-            console.log(this);
+          e.preventDefault();
+
+          $(':input').each(function(i){
+
+            console.log(this, this.dataset);
+          });
+
+          return false;
         });
-
-        return false;
       });
+
     </script>
     <style>
     div {

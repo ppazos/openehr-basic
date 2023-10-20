@@ -2,6 +2,7 @@ buildscript {
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
         maven { url "https://repo.grails.org/grails/core" }
+        maven { url 'https://jitpack.io' }
     }
     dependencies {
         classpath "org.grails:grails-gradle-plugin:$grailsGradlePluginVersion"
@@ -25,6 +26,7 @@ apply plugin:"com.bertramlabs.asset-pipeline"
 repositories {
     mavenCentral()
     maven { url "https://repo.grails.org/grails/core" }
+    maven { url 'https://jitpack.io' }
 }
 
 configurations {
@@ -76,6 +78,8 @@ dependencies {
     testImplementation "org.seleniumhq.selenium:selenium-support:4.0.0"
     testRuntimeOnly "org.seleniumhq.selenium:selenium-chrome-driver:4.0.0"
     testRuntimeOnly "org.seleniumhq.selenium:selenium-firefox-driver:4.0.0"
+
+    implementation "com.github.ppazos:openEHR-OPT:v1.9.8"
 }
 
 bootRun {

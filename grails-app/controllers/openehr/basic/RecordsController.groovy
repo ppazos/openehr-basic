@@ -5,20 +5,149 @@ package openehr.basic
 import repo.datatypes.*
 import repo.*
 
+import com.cabolabs.openehr.opt.parser.OperationalTemplateParser
+import com.cabolabs.openehr.opt.instance_validation.XmlValidation
+import com.cabolabs.openehr.opt.model.OperationalTemplate
+import com.cabolabs.openehr.opt.manager.OptManager
+import com.cabolabs.openehr.opt.manager.OptRepository
+import com.cabolabs.openehr.opt.manager.OptRepositoryFSImpl
+
 class RecordsController {
 
     def dataBindingService
 
     private static String PS = File.separator
     private static String path = "."+ PS +"archetypes"
-    private static List datavalues = ['DV_TEXT', 'DV_CODED_TEXT', 'DV_QUANTITY', 'DV_COUNT',
-                                'DV_ORDINAL', 'DV_DATE', 'DV_DATE_TIME', 'DV_PROPORTION',
-                                'DV_DURATION']
+    private static List datavalues = [
+        'DV_TEXT', 'DV_CODED_TEXT', 'DV_QUANTITY', 'DV_COUNT',
+        'DV_ORDINAL', 'DV_DATE', 'DV_DATE_TIME', 'DV_PROPORTION',
+        'DV_DURATION']
 
     def index()
     {
         // TODO: view
     }
+
+    def create_vitals()
+    {
+    }
+
+    def save_vitals()
+    {
+        //println params
+        //println request.JSON // content type is not json
+
+        def template_id = request.JSON.template_id
+
+
+        // TODO: move to service
+
+        String opt_repo_path = '.'
+        OptRepository repo = new OptRepositoryFSImpl(opt_repo_path)
+
+        OptManager opt_manager = OptManager.getInstance()
+        opt_manager.init(repo)
+
+        String namespace = 'opts'
+
+        // opt_manager.loadAll(namespace, true)
+
+        def opt = opt_manager.getOpt(template_id, namespace)
+
+        if (!opt)
+        {
+            return 'opt not found'
+        }
+
+        //def opt = loadAndParse('opts/'+)
+
+
+        /*
+        request.JSON.values.each {
+            println it // path, tpath, archetype
+        }
+        */
+
+        println ""
+
+        // 1. Group by template path and add the attribute name to each value and binding info
+
+        // Map: Parent TemplatePath -> Values (first grouping)
+        def data_grouping = request.JSON.values.groupBy{ it.tpath.substring(0, it.tpath.lastIndexOf('/')) }
+
+        data_grouping = data_grouping.collectEntries { template_path, values_and_bindings ->
+
+            def attrs_add = []
+            values_and_bindings.each {
+                attrs_add << it.tpath.substring(it.tpath.lastIndexOf('/') +1) // attribute name from template path
+            }
+
+            def attr_values = []
+            values_and_bindings.eachWithIndex { vav_item, i ->
+                attr_values[i] = vav_item << [attr: attrs_add[i]]
+            }
+
+            [template_path, attr_values]
+        }
+
+        def constraints
+
+        data_grouping.each { template_path, values_and_bindings ->
+
+            println template_path
+
+            // TODO: if there are many alternative types, we need to match one by the attributes present in the values
+            constraints = opt.getNodes(template_path)
+
+            println constraints.rmTypeName
+
+            println values_and_bindings
+            println ""
+        }
+
+
+        // 2. rm data binding for automatic validation
+
+
+
+        // 3. data value validation
+
+
+
+        // 4. mapping to local document and store
+
+
+        println ""
+
+        redirect action: 'create_vitals'
+        return
+    }
+
+    // TODO: move to service
+    // private OperationalTemplate loadAndParse(String path)
+    // {
+    //     def optFile = new File(path)
+
+    //     if (!optFile.exists()) throw new java.io.FileNotFoundException(path)
+
+    //     def inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream('xsd/OperationalTemplateExtra.xsd')
+    //     def validator = new XmlValidation(inputStream)
+
+    //     if (!validateXML(validator, optFile))
+    //     {
+    //         System.exit(1)
+    //     }
+
+    //     def text = optFile.getText()
+
+    //     assert text != null
+    //     assert text != ''
+
+    //     // FIXME: validate OPT against schema
+
+    //     def parser = new OperationalTemplateParser()
+    //     return parser.parse(text)
+    // }
     
     def create_blood_pressure()
     {
@@ -32,7 +161,7 @@ class RecordsController {
             return
         }
         
-    /*
+        /*
         def loader = ArchetypeManager.getInstance(path)
         loader.loadAll()
         
