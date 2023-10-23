@@ -7,10 +7,27 @@ import repo.*
 
 import com.cabolabs.openehr.opt.parser.OperationalTemplateParser
 import com.cabolabs.openehr.opt.instance_validation.XmlValidation
+
+import com.cabolabs.openehr.opt.model.ObjectNode
+import com.cabolabs.openehr.opt.model.domain.CDvQuantity
 import com.cabolabs.openehr.opt.model.OperationalTemplate
+import com.cabolabs.openehr.opt.model.PrimitiveObjectNode
+
 import com.cabolabs.openehr.opt.manager.OptManager
 import com.cabolabs.openehr.opt.manager.OptRepository
 import com.cabolabs.openehr.opt.manager.OptRepositoryFSImpl
+
+import com.cabolabs.openehr.rm_1_0_2.data_types.text.DvText
+import com.cabolabs.openehr.rm_1_0_2.data_types.text.DvCodedText
+import com.cabolabs.openehr.rm_1_0_2.data_types.quantity.DvCount
+import com.cabolabs.openehr.rm_1_0_2.data_types.quantity.DvQuantity
+import com.cabolabs.openehr.rm_1_0_2.data_types.quantity.DvProportion
+import com.cabolabs.openehr.rm_1_0_2.data_types.quantity.date_time.DvDateTime
+
+import com.cabolabs.openehr.validation.RmValidationReport
+import com.cabolabs.openehr.opt.model.validation.ValidationResult
+
+import grails.converters.*
 
 class RecordsController {
 
@@ -59,7 +76,6 @@ class RecordsController {
             return 'opt not found'
         }
 
-        //def opt = loadAndParse('opts/'+)
 
 
         /*
@@ -68,7 +84,6 @@ class RecordsController {
         }
         */
 
-        println ""
 
         // 1. Group by template path and add the attribute name to each value and binding info
 
@@ -92,63 +107,139 @@ class RecordsController {
 
         def constraints
 
+        def validation_errors = new RmValidationReport()
+        def rm_dv
+
         data_grouping.each { template_path, values_and_bindings ->
 
-            println template_path
+            //println template_path
 
-            // TODO: if there are many alternative types, we need to match one by the attributes present in the values
-            constraints = opt.getNodes(template_path)
+            constraints = opt.getNodesByTemplatePath(template_path)
 
-            println constraints.rmTypeName
+            // FIXME: if there are many alternative types, we need to match one by the attributes present in the values
+            // need to use a matcher to get the right constraint alternative!
+            //println constraints
+            //println constraints.rmTypeName
 
-            println values_and_bindings
+
+
+            // 2. rm data binding for automatic validation
+            switch (constraints[0].rmTypeName)
+            {
+                case 'DV_QUANTITY':
+                    rm_dv = new DvQuantity()
+
+                    def magnitude_value_binding = values_and_bindings.find{ it.attr == 'magnitude' }
+                    if (magnitude_value_binding)
+                    {
+                        magnitude_value_binding.type = 'double' // for casting the string to double
+                    }
+                    // else: this is not valid because is missing a required DV value
+                break
+                case 'DV_COUNT':
+                    rm_dv = new DvCount()
+
+                    def magnitude_value_binding = values_and_bindings.find{ it.attr == 'magnitude' }
+                    if (magnitude_value_binding)
+                    {
+                        magnitude_value_binding.type = 'integer' // for casting the string to double
+                    }
+                    // else: this is not valid because is missing a required DV value
+                break
+                case 'DV_TEXT':
+                    rm_dv = new DvText()
+                break
+                // TODO: check I think this will be CODE_PHRASE
+                case 'DV_CODED_TEXT':
+                    rm_dv = new DvCodedText()
+                break
+                case 'DV_DATE_TIME':
+                    rm_dv = new DvDateTime()
+                break
+                case 'DV_PROPORTION':
+                    rm_dv = new DvProportion()
+
+                    def numerator_value_binding = values_and_bindings.find{ it.attr == 'numerator' }
+                    if (numerator_value_binding)
+                    {
+                        numerator_value_binding.type = 'float' // for casting the string to double
+                    }
+
+                    def denominator_value_binding = values_and_bindings.find{ it.attr == 'denominator' }
+                    if (denominator_value_binding)
+                    {
+                        denominator_value_binding.type = 'float' // for casting the string to double
+                    }
+                break
+                default:
+                   println constraints[0].rmTypeName +" is not supported yet"
+            }
+
+
+            // FIXME: for coded text que hace structured attributes, this won't work
+            values_and_bindings.each {
+                if (it.type) // need to cast
+                {
+                    switch (it.type)
+                    {
+                        case 'double':
+                           it.value = it.value.toDouble()
+                        break
+                        case 'integer':
+                           it.value = it.value.toInteger()
+                        break
+                        case 'float':
+                           it.value = it.value.toFloat()
+                        break
+                        default:
+                            println "Cast type set to '${it.type}' but not it's not supported yet"
+                    }
+                }
+                rm_dv."${it.attr}" = it.value
+            }
+
+
+
+            // 3. data value validation
+            if (constraints[0] instanceof ObjectNode) // ObjectNode doesn't have an isValid() method
+            {
+                def method = "validate${constraints[0].rmTypeName}"
+                def validation_result =  this."$method"(rm_dv, constraints[0])
+
+                if (!validation_result)
+                {
+                    validation_errors.addError(
+                        template_path,
+                        validation_result.message
+                    )
+                }
+            }
+            
+
+            //println values_and_bindings
             println ""
         }
 
 
-        // 2. rm data binding for automatic validation
+        validation_errors.errors.each {
+            println it
+        }
 
+        //if (validation_errors.hasErrors())
+        //{
+            render(status:201, text:validation_errors as JSON, contentType:"application/json", encoding:"UTF-8")
+            return
+        //}
 
-
-        // 3. data value validation
 
 
 
         // 4. mapping to local document and store
-
-
-        println ""
-
-        redirect action: 'create_vitals'
-        return
+        // need to transform flat routes in a tree
+        // note this is done here using the AOM, we need to use the TOM
+        // https://github.com/ppazos/openEHR-skeleton/blob/master/grails-app/services/com/cabolabs/openehr/skeleton/data/DataBindingService.groovy
     }
 
-    // TODO: move to service
-    // private OperationalTemplate loadAndParse(String path)
-    // {
-    //     def optFile = new File(path)
-
-    //     if (!optFile.exists()) throw new java.io.FileNotFoundException(path)
-
-    //     def inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream('xsd/OperationalTemplateExtra.xsd')
-    //     def validator = new XmlValidation(inputStream)
-
-    //     if (!validateXML(validator, optFile))
-    //     {
-    //         System.exit(1)
-    //     }
-
-    //     def text = optFile.getText()
-
-    //     assert text != null
-    //     assert text != ''
-
-    //     // FIXME: validate OPT against schema
-
-    //     def parser = new OperationalTemplateParser()
-    //     return parser.parse(text)
-    // }
-    
     def create_blood_pressure()
     {
     }
@@ -322,7 +413,80 @@ class RecordsController {
         
         redirect action: 'create_blood_pressure'
     }
+
+
+    private ValidationResult validateDV_QUANTITY(DvQuantity dv, constraint)
+    {
+        if (constraint instanceof CDvQuantity)
+        {
+            return constraint.isValid(dv)
+        }
+        else
+        {
+            println "DV_QTY validation not CDvQuantity"
+        }
+
+        return null
+    }
+
+    private ValidationResult validateDV_TEXT(DvText dv, constraint)
+    {
+        def attr_constraint = constraint.attributes.find { it.rmAttributeName == 'value' }
+
+        if (!attr_constraint) // no constraint for the value => the value is valid
+        {
+            return new ValidationResult(isValid: true)
+        }
+
+        if (attr_constraint.children.size() > 0 && attr_constraint.children[0] instanceof PrimitiveObjectNode)
+        {
+            return attr_constraint.children[0].item.isValid(dv.value)
+        }
+
+        return new ValidationResult(isValid: true)
+    }
+
+    private ValidationResult validateDV_PROPORTION(DvProportion dv, constraint)
+    {
+        def attr_constraint = constraint.attributes.find { it.rmAttributeName == 'type' }
+
+        if (!attr_constraint) // no constraint for the value => the value is valid
+        {
+            // FIXME: if the OPT doesn't have a constraint for the type, the OPT itself is invalid
+            return new ValidationResult(isValid: true)
+        }
+
+        if (attr_constraint.children.size() > 0 && attr_constraint.children[0] instanceof PrimitiveObjectNode)
+        {
+            //return attr_constraint.children[0].item.isValid(dv.value)
+
+            def proportion_kind_value = attr_constraint.children[0].item.list[0]
+
+            switch (proportion_kind_value)
+            {
+                case 1: // unitary
+                    if (dv.denominator != 1)
+                    {
+                        return new ValidationResult(isValid: false, message: "denominator '${dv.denominator}' should be 1")
+                    }
+                break
+                case 2: // percent
+                    if (dv.denominator != 100)
+                    {
+                        return new ValidationResult(isValid: false, message: "denominator '${dv.denominator}' should be 100")
+                    }
+                break
+            }
+        }
+
+        return new ValidationResult(isValid: true)
+    }
+
     
+
+    
+
+    /*
     private boolean validateDV_QUANTITY(data, constraint, parent)
     {
         // If there is missing data to create the datavalue,
@@ -367,13 +531,14 @@ class RecordsController {
         {
             return !mandatory
         }
-        /*
-        println data
-        println constraint
-        println constraint.codeList
-        */
+        
+        // println data
+        // println constraint
+        // println constraint.codeList
+        
         return constraint.codeList.contains(data) // validates a code
     }
+    */
     
     
     /**

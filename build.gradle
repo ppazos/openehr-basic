@@ -79,7 +79,7 @@ dependencies {
     testRuntimeOnly "org.seleniumhq.selenium:selenium-chrome-driver:4.0.0"
     testRuntimeOnly "org.seleniumhq.selenium:selenium-firefox-driver:4.0.0"
 
-    implementation "com.github.ppazos:openEHR-OPT:v1.9.8"
+    implementation "com.github.ppazos:openEHR-OPT:v1.9.10"
 }
 
 bootRun {
