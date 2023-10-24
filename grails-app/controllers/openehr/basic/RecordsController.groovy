@@ -2,7 +2,7 @@ package openehr.basic
 
 //import com.cabolabs.openehr.adl.ArchetypeManager
 //import org.openehr.rm.common.archetyped.Locatable
-import repo.datatypes.*
+import repo.datavalue.*
 import repo.*
 
 import com.cabolabs.openehr.opt.parser.OperationalTemplateParser
@@ -67,22 +67,12 @@ class RecordsController {
 
         String namespace = 'opts'
 
-        // opt_manager.loadAll(namespace, true)
-
         def opt = opt_manager.getOpt(template_id, namespace)
 
         if (!opt)
         {
             return 'opt not found'
         }
-
-
-
-        /*
-        request.JSON.values.each {
-            println it // path, tpath, archetype
-        }
-        */
 
 
         // 1. Group by template path and add the attribute name to each value and binding info
@@ -214,9 +204,15 @@ class RecordsController {
                     )
                 }
             }
+
+
+            values_and_bindings << [
+                dv_data: rm_dv
+            ]
             
 
-            //println values_and_bindings
+            println values_and_bindings
+
             println ""
         }
 
@@ -225,13 +221,25 @@ class RecordsController {
             println it
         }
 
-        //if (validation_errors.hasErrors())
-        //{
-            render(status:201, text:validation_errors as JSON, contentType:"application/json", encoding:"UTF-8")
-            return
-        //}
+        if (!validation_errors.hasErrors())
+        {
+            def document = new Document(
+                author:      Clinician.get(1), // The clinician should come from a session, for that we need to add a login
+                templateId:  template_id, 
+                archetypeId: opt.definition.archetypeId,
+                ehr:         Ehr.get(1)
+            )
+
+            document.save(failOnError: true)
+
+            def item = bindContents(document, data_grouping, opt.definition)
+            //println item as JSON
+            item.save(failOnError: true) // FIXME: there is a problem saving
+        }
 
 
+        render(status:201, text:validation_errors as JSON, contentType:"application/json", encoding:"UTF-8")
+        return
 
 
         // 4. mapping to local document and store
@@ -239,6 +247,103 @@ class RecordsController {
         // note this is done here using the AOM, we need to use the TOM
         // https://github.com/ppazos/openEHR-skeleton/blob/master/grails-app/services/com/cabolabs/openehr/skeleton/data/DataBindingService.groovy
     }
+
+    // TODO: this doesn't bind rm attributes that are not in the opt
+    def bindContents(document, data_grouping, opt_node)
+    {
+        println opt_node.rmTypeName
+
+        def item
+        if (opt_node.rmTypeName == 'ELEMENT')
+        {
+            item = new Element(
+                type:        opt_node.rmTypeName,
+                archetypeId: opt_node.getOwnerArchetypeId(),
+                path:        opt_node.templatePath, //.path, // FIXME: if the node is an constraint ref, use the reference
+                nodeId:      opt_node.nodeId,
+                parent:      document,
+                name:        new repo.datavalue.DvText(
+                    value: opt_node.text
+                )
+            )
+
+            // FIXME: if there are multiple children alternatives, match the right alternative by the available
+            //        attribute names instead of using the first one (children[0])
+            item.value = bindDv(document, data_grouping, opt_node.attributes.find{ it.rmAttributeName == 'value'}.children[0] )
+        }
+        else
+        {
+            item = new Structure(
+                type:        opt_node.rmTypeName,
+                archetypeId: opt_node.getOwnerArchetypeId(),
+                path:        opt_node.templatePath, //.path, // FIXME: if the node is an constraint ref, use the reference
+                nodeId:      opt_node.nodeId,
+                parent:      document
+            )
+
+            def attrs = []
+            def contents
+            opt_node.attributes.each { attr_node ->
+                attr_node.children.each { child_node -> // alternative types if attr node is single, multiple memers if attr is multiple
+                    
+                    // FIXME: only bind if there are matching data_groups for the child_node path
+                    //attrs << bindContents(document, data_grouping, child_node)
+                    contents = bindContents(document, data_grouping, child_node)
+                    if (contents)
+                    {
+                        //println "contents: "+ contents
+                        item.addToItems(contents)
+                    }
+                }
+            }
+        }
+
+        if (!item.validate())
+        {
+            println item.errors
+        }
+
+        return item
+    }
+
+    def bindDv(document, data_grouping, opt_node)
+    {
+        //println 'bindDv '+ opt_node.templatePath
+        //println data_grouping.find{ it.key == opt_node.templatePath }.findResults { it.value.dv_data }
+        // it.value is a list of bidings and data and one should be the dv_data already binded to the RM dv
+        def dv_data = data_grouping.collect{ if (it.key == opt_node.templatePath) return it.value.find { binding -> binding.dv_data != null }?.dv_data }.find{ it != null }
+
+        def persistent_dv
+        if (dv_data)
+        {
+            switch (dv_data)
+            {
+                case { it instanceof DvQuantity}:
+                    persistent_dv = new repo.datavalue.DvQuantity(
+                        magnitude: BigDecimal.valueOf(dv_data.magnitude),
+                        units: dv_data.units
+                    )
+                break
+                case { it instanceof DvProportion}:
+                    persistent_dv = new repo.datavalue.DvProportion(
+                        numerator: new BigDecimal(Float.toString(dv_data.numerator)),
+                        denominator: new BigDecimal(Float.toString(dv_data.denominator))
+                    )
+                break
+                case { it instanceof DvText}:
+                    persistent_dv = new repo.datavalue.DvText(
+                        value: dv_data.value
+                    )
+                break
+                // TODO: support more types
+            }
+        }
+
+        //println persistent_dv
+
+        return persistent_dv
+    }
+
 
     def create_blood_pressure()
     {

@@ -22,6 +22,7 @@ class Item {
     static constraints = {
         attr nullable: true
         parent nullable: true
+        nodeId nullable: true
     }
 
     static mapping = {

@@ -16,11 +16,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
 
     <g:layoutHead/>
+    <style>
+    </style>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-static-top" role="navigation">
+    <nav class="navbar navbar-expand-lg navbar-light navbar-static-top" role="navigation">
       <div class="container-fluid">
-        <a class="navbar-brand" href="/#"><asset:image src="grails.svg" alt="Grails Logo"/></a>
+        <a class="navbar-brand" href="/#"><img src="https://cabolabs.com/images/isotype_square_print.png" width="80" alt="CaboLabs Logo"/></a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
