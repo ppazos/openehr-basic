@@ -112,8 +112,6 @@ class IntegrationService {
 
     private Observation buildOBSERVATION(Structure struct, opt)
     {
-        println 'buildOBS '+ opt.getTerm(struct.archetypeId, struct.nodeId)
-
         def obs = new Observation()
         fillENTRY(struct, obs, opt)
 
@@ -126,8 +124,6 @@ class IntegrationService {
 
     private History buildHISTORY(Structure struct, opt)
     {
-        println 'buildHISTORY '+ opt.getTerm(struct.archetypeId, struct.nodeId)
-
         def hist = new History(
             origin: new DvDateTime(
                 value: dateTimeInUTC(struct.parent.start)
@@ -221,7 +217,7 @@ class IntegrationService {
         // TODO: bind value
 
         def method = 'build'+ p_elem.value.class.simpleName
-        def rm_value = this."$method"(p_elem.value)
+        def rm_value = this."$method"(p_elem.value, p_elem.path +'/value', opt)
 
         elem.value = rm_value
 
@@ -229,7 +225,7 @@ class IntegrationService {
     }
 
 
-    private buildDvQuantity(repo.datavalue.DvQuantity value)
+    private buildDvQuantity(repo.datavalue.DvQuantity value, String template_path, opt)
     {
         def dv = new com.cabolabs.openehr.rm_1_0_2.data_types.quantity.DvQuantity(
             magnitude: value.magnitude.doubleValue(),
@@ -239,19 +235,27 @@ class IntegrationService {
         return dv
     }
 
-    private buildDvProportion(repo.datavalue.DvProportion value)
+    private buildDvProportion(repo.datavalue.DvProportion value, String template_path, opt)
     {
-        // FIXME: missing required type, need to check the opt!
+        // get the type from the opt
+        def type = 1 // 1 is pk_ratio
+        def constraints = opt.getNodesByTemplatePath(template_path)
+        if (constraints)
+        {
+            def attr_type = constraints[0].attributes.find{ it.rmAttributeName == 'type' }
+            type = (attr_type?.children[0]?.item.list[0] ?: 1) // 1 is pk_ratio
+        }
+
         def dv = new com.cabolabs.openehr.rm_1_0_2.data_types.quantity.DvProportion(
             numerator: value.numerator.floatValue(),
-            denominator: value.denominator.floatValue()
-            // type: ?????
+            denominator: value.denominator.floatValue(),
+            type: type
         )
 
         return dv
     }
 
-    private buildDvText(repo.datavalue.DvText value)
+    private buildDvText(repo.datavalue.DvText value, String template_path, opt)
     {
         def dv = new com.cabolabs.openehr.rm_1_0_2.data_types.text.DvText(
             value: value.value
@@ -299,9 +303,14 @@ class IntegrationService {
                 ),
                 rm_version: "1.0.2"
             )
-        }
 
-        locatable.archetype_node_id = item.nodeId
+            // for archetype root nodes, the archetype_node_id is the archetype_id
+            locatable.archetype_node_id = item.archetypeId
+        }
+        else
+        {
+            locatable.archetype_node_id = item.nodeId
+        }
     }
 
     private String dateTimeInUTC(Date date)
@@ -320,6 +329,13 @@ class IntegrationService {
         String namespace = 'opts'
 
         return opt_manager.getOpt(templateId, namespace) // can be null!
+    }
+
+    String getTemplateContents(String templateId)
+    {
+        String opt_repo_path = '.'
+        OptRepository repo = new OptRepositoryFSImpl(opt_repo_path)
+        repo.getOptContentsByTemplateId(templateId, 'opts')
     }
 
     // RM composition to JSON transformation

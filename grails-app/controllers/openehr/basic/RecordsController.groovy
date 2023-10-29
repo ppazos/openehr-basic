@@ -29,6 +29,9 @@ import com.cabolabs.openehr.opt.model.validation.ValidationResult
 
 import grails.converters.*
 
+// TODO: move to service
+import com.cabolabs.openehr.rest.client.OpenEhrRestClient
+
 class RecordsController {
 
     def dataBindingService
@@ -210,11 +213,6 @@ class RecordsController {
             values_and_bindings << [
                 dv_data: rm_dv
             ]
-            
-
-            println values_and_bindings
-
-            println ""
         }
 
 
@@ -228,7 +226,7 @@ class RecordsController {
                 author:      Clinician.get(1), // The clinician should come from a session, for that we need to add a login
                 templateId:  template_id, 
                 archetypeId: opt.definition.archetypeId,
-                ehr:         Ehr.get(1)
+                ehr:         Ehr.get(1) // NOTE: the EHR should be selected by the user, we don't have a UI to do that yet
             )
 
             document.save(failOnError: true)
@@ -255,12 +253,70 @@ class RecordsController {
             //println item as JSON
             //item.save(failOnError: true) // FIXME: there is a problem saving
 
-            
 
+
+
+            // ==============================================
+            // Preparte CDR commit
             // ==============================================
             // integration with openEHR CDR
             def compo = integrationService.buildComposition(document)
-            println integrationService.serializeComposition(compo) // TEST, TODO
+            //def json_compo = integrationService.serializeComposition(compo) // TEST
+
+
+
+
+            // TEST
+            // TODO: move to service
+            def api_url = 'http://localhost:8090/openehr/v1'
+            def api_auth_url = 'http://localhost:8090/rest/v1'
+            def api_admin_url = 'http://localhost:8090/adminRest'
+
+            def client = new OpenEhrRestClient(
+                api_url,
+                api_auth_url,
+                api_admin_url
+            )
+
+            // set required header for POST endpoints
+            client.setCommitterHeader('name="'+ document.author.name +'", external_ref.id="'+ document.author.uid +'", external_ref.namespace="demographic", external_ref.type="PERSON"')
+
+            client.auth("admin@cabolabs.com", "admin") // TODO: set on config file
+
+
+            def p_ehr = document.ehr // NOTE: the EHR should be selected by the user, we don't have a UI to do that yet
+            
+            // 1. get EHR by uid
+            // TEST: is this null or returns some error code?
+            def ehr = client.getEhr(p_ehr.uid)
+
+
+            // 2. if EHR doesn't exists, create with uid (PUT)
+            if (!ehr)
+            {
+                ehr = client.createEhr(p_ehr.uid)
+
+                if (!ehr)
+                {
+                    // TODO: handle!
+                    throw new Exception("EHR wasn't created in the CDR")
+                }
+            }
+
+
+            // 3. upload opt (to be sure it's in the CDR)
+            String opt_contents = integrationService.getTemplateContents(template_id)
+            client.uploadTemplate(opt_contents)
+
+
+            // 4. commit compo to EHR
+            def composition = client.createComposition(p_ehr.uid, compo)
+
+            if (!composition)
+            {
+                println client.lastError
+                throw new Exception("Composition wasn't created in the CDR")
+            }
         }
 
 
