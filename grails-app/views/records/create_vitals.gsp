@@ -54,7 +54,7 @@
                   <input class="DV_QUANTITY form-control" type="number" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.presion_arterial.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/magnitude" data-archetype="openEHR-EHR-OBSERVATION.presion_arterial.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/magnitude" />
                 </div>
                 <div class="col">
-                  <select class="DV_QUANTITY form-control" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.presion_arterial.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/units" data-archetype="openEHR-EHR-OBSERVATION.presion_arterial.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/units">
+                  <select class="DV_QUANTITY form-select" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.presion_arterial.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/units" data-archetype="openEHR-EHR-OBSERVATION.presion_arterial.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/units">
                     <option value=""></option>
                     <option value="mm[Hg]">mm[Hg]</option>
                   </select>
@@ -68,7 +68,7 @@
                   <input class="DV_QUANTITY form-control" type="number" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.presion_arterial.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0005]/value/magnitude" data-archetype="openEHR-EHR-OBSERVATION.presion_arterial.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0005]/value/magnitude" />
                 </div>
                 <div class="col">
-                  <select class="DV_QUANTITY form-control" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.presion_arterial.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0005]/value/units" data-archetype="openEHR-EHR-OBSERVATION.presion_arterial.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0005]/value/units">
+                  <select class="DV_QUANTITY form-select" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.presion_arterial.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0005]/value/units" data-archetype="openEHR-EHR-OBSERVATION.presion_arterial.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0005]/value/units">
                     <option value=""></option>
                     <option value="mm[Hg]">mm[Hg]</option>
                   </select>
@@ -92,7 +92,7 @@
                   <input class="DV_QUANTITY form-control" type="number" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.frecuencia_cardiaca.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/magnitude" data-archetype="openEHR-EHR-OBSERVATION.frecuencia_cardiaca.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/magnitude" />
                 </div>
                 <div class="col">
-                  <select class="DV_QUANTITY form-control" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.frecuencia_cardiaca.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/units" data-archetype="openEHR-EHR-OBSERVATION.frecuencia_cardiaca.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/units">
+                  <select class="DV_QUANTITY form-select" data-tpath="/content[archetype_id=openEHR-EHR-OBSERVATION.frecuencia_cardiaca.v1]/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/units" data-archetype="openEHR-EHR-OBSERVATION.frecuencia_cardiaca.v1" data-path="/data[at0001]/events[at0002]/data[at0003]/items[at0004]/value/units">
                     <option value=""></option>
                     <option value="/min">/min</option>
                   </select>

@@ -32,6 +32,7 @@ import grails.converters.*
 class RecordsController {
 
     def dataBindingService
+    def integrationService
 
     private static String PS = File.separator
     private static String path = "."+ PS +"archetypes"
@@ -59,16 +60,16 @@ class RecordsController {
 
         // TODO: move to service
 
-        String opt_repo_path = '.'
-        OptRepository repo = new OptRepositoryFSImpl(opt_repo_path)
+        // String opt_repo_path = '.'
+        // OptRepository repo = new OptRepositoryFSImpl(opt_repo_path)
 
-        OptManager opt_manager = OptManager.getInstance()
-        opt_manager.init(repo)
+        // OptManager opt_manager = OptManager.getInstance()
+        // opt_manager.init(repo)
 
-        String namespace = 'opts'
+        // String namespace = 'opts'
 
-        def opt = opt_manager.getOpt(template_id, namespace)
-
+        // def opt = opt_manager.getOpt(template_id, namespace)
+        def opt = integrationService.getTemplate(template_id)
         if (!opt)
         {
             return 'opt not found'
@@ -232,10 +233,36 @@ class RecordsController {
 
             document.save(failOnError: true)
 
-            def item = bindContents(document, data_grouping, opt.definition)
+
+
+            // NOTE: this will create a Structure for the COMPOSITION too
+            //def item = bindContents(document, data_grouping, opt.definition, true)
+
+            // This code avoids to create the Structure for the COMPOSITION
+            def content_item_attrs = opt.definition.attributes.findAll{ it.rmAttributeName == 'content' }
+            def item
+            content_item_attrs.each { content_item_attr ->
+                content_item_attr.children.each { content_item ->
+
+                    // TODO: filter data_grouping by the path of the content_item
+                    item = bindContents(document, data_grouping, content_item, 'content', true)
+                    item.save(failOnError: true)
+                }
+            }
+
+            // TODO: also need a structure for the context
+
             //println item as JSON
-            item.save(failOnError: true) // FIXME: there is a problem saving
+            //item.save(failOnError: true) // FIXME: there is a problem saving
+
+            
+
+            // ==============================================
+            // integration with openEHR CDR
+            def compo = integrationService.buildComposition(document)
+            println integrationService.serializeComposition(compo) // TEST, TODO
         }
+
 
 
         render(status:201, text:validation_errors as JSON, contentType:"application/json", encoding:"UTF-8")
@@ -249,9 +276,10 @@ class RecordsController {
     }
 
     // TODO: this doesn't bind rm attributes that are not in the opt
-    def bindContents(document, data_grouping, opt_node)
+    // top = true means the item is a direct child of document
+    private def bindContents(document, data_grouping, opt_node, rm_attr, top = false)
     {
-        println opt_node.rmTypeName
+        //println rm_attr +" "+ opt_node.rmTypeName
 
         def item
         if (opt_node.rmTypeName == 'ELEMENT')
@@ -264,7 +292,8 @@ class RecordsController {
                 parent:      document,
                 name:        new repo.datavalue.DvText(
                     value: opt_node.text
-                )
+                ),
+                attr:        rm_attr
             )
 
             // FIXME: if there are multiple children alternatives, match the right alternative by the available
@@ -274,11 +303,14 @@ class RecordsController {
         else
         {
             item = new Structure(
-                type:        opt_node.rmTypeName,
-                archetypeId: opt_node.getOwnerArchetypeId(),
-                path:        opt_node.templatePath, //.path, // FIXME: if the node is an constraint ref, use the reference
-                nodeId:      opt_node.nodeId,
-                parent:      document
+                type:          opt_node.rmTypeName,
+                archetypeId:   opt_node.getOwnerArchetypeId(),
+                path:          opt_node.templatePath, //.path, // FIXME: if the node is an constraint ref, use the reference
+                nodeId:        opt_node.nodeId,
+                parent:        document,
+                attr:          rm_attr,
+                top:           top,
+                archetypeRoot: (opt_node.archetypeId ? true : false) // is this an archetype root?
             )
 
             def attrs = []
@@ -288,7 +320,7 @@ class RecordsController {
                     
                     // FIXME: only bind if there are matching data_groups for the child_node path
                     //attrs << bindContents(document, data_grouping, child_node)
-                    contents = bindContents(document, data_grouping, child_node)
+                    contents = bindContents(document, data_grouping, child_node, attr_node.rmAttributeName)
                     if (contents)
                     {
                         //println "contents: "+ contents

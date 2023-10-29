@@ -5,7 +5,7 @@ import repo.datavalue.DataValue
 class Item {
 
     String type // rm_type_name
-    String attr // rm_attr_name (not used)
+    String attr // rm_attr_name
     
     String archetypeId
     String path
@@ -13,6 +13,8 @@ class Item {
 
     // To simplify querying in a document
     Document parent
+
+    boolean archetypeRoot
     
     Map attributes // attributes of the openEHR IM
     static hasMany = [attributes: DataValue]

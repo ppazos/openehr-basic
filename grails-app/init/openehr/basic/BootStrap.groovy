@@ -59,6 +59,7 @@ class BootStrap {
             ehr.save(failOnError: true)
         }
 
+        /*
         def ehr_documents = [
             [ // docs for ehr 0
                 new Document(
@@ -71,13 +72,12 @@ class BootStrap {
                     templateId: 'Monitoreo de signos vitales',
                     archetypeId: 'openEHR-EHR-COMPOSITION.monitoreo_de_signos_vitales.v1'
                 )
-                /*,
-                new Document(
-                    author: clinicians[1],
-                    templateId: 'Consulta',
-                    archetypeId: 'openEHR-EHR-COMPOSITION.consulta.v1'
-                )
-                */
+                // new Document(
+                //     author: clinicians[1],
+                //     templateId: 'Consulta',
+                //     archetypeId: 'openEHR-EHR-COMPOSITION.consulta.v1'
+                // )
+                
             ],
             [ // docs for ehr 1
                 new Document(
@@ -90,13 +90,11 @@ class BootStrap {
                     templateId: 'Monitoreo de signos vitales',
                     archetypeId: 'openEHR-EHR-COMPOSITION.monitoreo_de_signos_vitales.v1'
                 )
-                /*,
-                new Document(
-                    author: clinicians[1],
-                    templateId: 'Consulta',
-                    archetypeId: 'openEHR-EHR-COMPOSITION.consulta.v1'
-                )
-                */
+                // new Document(
+                //     author: clinicians[1],
+                //     templateId: 'Consulta',
+                //     archetypeId: 'openEHR-EHR-COMPOSITION.consulta.v1'
+                // )
             ]
         ]
 
@@ -340,6 +338,8 @@ class BootStrap {
                 contents[ehr_idx][doc_idx].save(failOnError: true)
             }
         }
+
+        */
     }
 
     def set_document_recursive(Document parent, Structure item)

@@ -41,6 +41,7 @@
       <div class="container-fluid">
         <div class="row">
           <div class="col">
+            xxxx
             <%-- <a href="http://guides.grails.org" target="_blank">
                 <asset:image src="advancedgrails.svg" alt="Grails Guides" class="float-left"/>
             </a>
@@ -48,7 +49,7 @@
             <p>Building your first Grails app? Looking to add security, or create a Single-Page-App? Check out the <a href="http://guides.grails.org" target="_blank">Grails Guides</a> for step-by-step tutorials.</p> --%>
           </div>
           <div class="col">
-            
+            xxx
           </div>
         </div>
       </div>
