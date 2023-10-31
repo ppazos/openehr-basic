@@ -257,7 +257,7 @@ class RecordsController {
 
 
             // ==============================================
-            // Preparte CDR commit
+            // Prepare CDR commit
             // ==============================================
             // integration with openEHR CDR
             def compo = integrationService.buildComposition(document)
